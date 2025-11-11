@@ -1,0 +1,10 @@
+﻿.env
+*.pkl
+__pycache__/
+*.pyc
+timescaledb_data/
+chromadb_data/
+*.pem
+.DS_Store
+venv/
+*.log

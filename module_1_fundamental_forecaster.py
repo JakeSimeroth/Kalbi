@@ -3,7 +3,8 @@ from google.generativeai.types import GenerationConfig
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.tools import tool
-from langchain.agents import create_react_agent, AgentExecutor
+from langchain_community.agents import create_react_agent
+from langchain.agents import AgentExecutor
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain import hub
 

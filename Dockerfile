@@ -21,18 +21,18 @@ RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
     ./configure --prefix=/usr && \
     make && \
     make install && \
-    cd .. && \  # Fixed: Added space between cd and ..
+    cd .. && \
     rm -rf ta-lib ta-lib-0.4.0-src.tar.gz
 
 # Copy requirements and install Python packages
-COPY requirements.txt .  # Fixed: Added space before the dot
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download spaCy model
 RUN python -m spacy download en_core_web_sm
 
 # Copy the rest of the application code
-COPY . .  # Fixed: Added spaces
+COPY . .
 
 # Command to run the application (will be overridden by docker-compose)
 CMD ["python", "main.py"]

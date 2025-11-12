@@ -1,80 +1,132 @@
+import json
 import pandas as pd
 from sqlalchemy import create_engine, text
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from xgboost import XGBClassifier
-import joblib
-
 import config
 from module_2_quantitative_engine import QuantitativeEngine
+from module_3_strategy_handler import StrategyHandler
 
-# --- THIS IS A PLACEHOLDER ---
-# You must replace this with a real function to get historical resolved markets
-def get_historical_training_data(db_engine):
+def initialize_system():
     """
-    Placeholder: You need to build a dataset of features (X) and outcomes (y).
-    This involves:
-    1. Getting ALL resolved markets from Kalshi.
-    2. For EACH market, getting its FULL candlestick history.
-    3. For EACH candlestick (hour) in its history, calculating the features.
-    4. Labeling EACH row with the final market resolution (y = 1 for 'Yes', 0 for 'No').
-    This is a complex data engineering task.
+    Initializes the trading system and validates all components.
+    No training required - this just ensures everything is properly configured.
+    """
+    print("=" * 60)
+    print("QUANTAMENTAL TRADER - SYSTEM INITIALIZATION")
+    print("=" * 60)
     
-    For now, we create dummy data to make the file runnable.
-    """
-    print("Loading dummy training data...")
-    # Dummy data structure
-    data = {
-        'rsi_14': [1, 2, 3, 4, 5],
-        'macd_hist': [-1, -2, 3, 1, 0.5],
-        'obv': ,
-        'volume_sma_5': [6, 7, 8, 9, 10],
-        'hours_to_expiration': ,
-        # --- The most important feature: The LLM's opinion at the time ---
-        # This requires a historical RAG pipeline, which is very complex 
-        'fundamental_prob': [0.5, 0.5, 0.5, 0.5, 0.5],
-        'market_resolution':  # The final 'y' target
+    # 1. Test Database Connection
+    print("\n[1/4] Testing TimescaleDB connection...")
+    try:
+        db_engine = create_engine(config.TIMESCALEDB_URI)
+        with db_engine.connect() as conn:
+            result = conn.execute(text("SELECT version()"))
+            version = result.fetchone()[0]
+            print(f"✓ Database connected: {version[:50]}...")
+    except Exception as e:
+        print(f"✗ Database connection failed: {e}")
+        print("Make sure TimescaleDB is running (docker-compose up timescaledb)")
+        return False
+    
+    # 2. Initialize Quantitative Engine
+    print("\n[2/4] Initializing Quantitative Engine...")
+    try:
+        quant_engine = QuantitativeEngine()
+        print("✓ Quantitative engine initialized with TimescaleDB hypertables")
+    except Exception as e:
+        print(f"✗ Quantitative engine failed: {e}")
+        return False
+    
+    # 3. Initialize Strategy Handler
+    print("\n[3/4] Initializing Strategy Handler...")
+    try:
+        strategy = StrategyHandler()
+        diagnostics = strategy.get_signal_diagnostics()
+        print(f"✓ Strategy initialized: {diagnostics['strategy_type']}")
+        print(f"  Requires training: {diagnostics['requires_training']}")
+        print(f"  Signal weights: {json.dumps(diagnostics['weights'], indent=2)}")
+    except Exception as e:
+        print(f"✗ Strategy handler failed: {e}")
+        return False
+    
+    # 4. Test Strategy with Sample Data
+    print("\n[4/4] Testing strategy with sample data...")
+    try:
+        # Sample inputs
+        sample_fundamental_prob = 0.65
+        sample_quant_features = {
+            'rsi_14': 45,
+            'macd_hist': 0.02,
+            'obv': 5000,
+            'volume_sma_5': 1000,
+            'hours_to_expiration': 48
+        }
+        
+        print(f"Sample fundamental probability: {sample_fundamental_prob}")
+        print(f"Sample RSI: {sample_quant_features['rsi_14']}")
+        
+        # Generate hybrid forecast
+        hybrid_prob = strategy.generate_hybrid_forecast(
+            sample_fundamental_prob, 
+            sample_quant_features
+        )
+        
+        print(f"\n✓ Strategy test successful!")
+        print(f"  Output hybrid probability: {hybrid_prob:.3f}")
+        
+        # Calculate what the edge would be at different market prices
+        print("\n  Edge Analysis (Hybrid Prob = {:.1%}):".format(hybrid_prob))
+        for market_price in [40, 50, 60, 70, 80]:
+            edge = hybrid_prob - (market_price / 100)
+            action = "BUY" if edge > config.MIN_EDGE_THRESHOLD else "SKIP"
+            print(f"    Market @ {market_price}¢ → Edge: {edge:+.3f} → {action}")
+            
+    except Exception as e:
+        print(f"✗ Strategy test failed: {e}")
+        return False
+    
+    # 5. Create configuration summary
+    print("\n" + "=" * 60)
+    print("SYSTEM CONFIGURATION")
+    print("=" * 60)
+    print(f"Trading Mode: {config.TRADING_MODE}")
+    print(f"Target Category: {config.TARGET_CATEGORY}")
+    print(f"Min Edge Threshold: {config.MIN_EDGE_THRESHOLD:.1%}")
+    print(f"Max Position Size: ${config.MAX_POSITION_SIZE}")
+    print(f"Min Market Liquidity: {config.MIN_MARKET_LIQUIDITY} contracts")
+    
+    # Save configuration file for reference
+    config_summary = {
+        'system': 'Quantamental Trader v1.0',
+        'strategy': 'Weighted Ensemble (No Training Required)',
+        'initialization_successful': True,
+        'configuration': {
+            'trading_mode': config.TRADING_MODE,
+            'target_category': config.TARGET_CATEGORY,
+            'min_edge_threshold': config.MIN_EDGE_THRESHOLD,
+            'max_position_size': config.MAX_POSITION_SIZE,
+            'min_market_liquidity': config.MIN_MARKET_LIQUIDITY
+        },
+        'signal_weights': diagnostics['weights']
     }
-    return pd.DataFrame(data)
-
-def train_meta_model():
-    """
-    Trains the scikit-learn meta-model that fuses fundamental
-    and quantitative signals. 
-    """
-    print("Training meta-model (Module 3)...")
-    db_engine = create_engine(config.TIMESCALEDB_URI)
     
-    # 1. Load historical data
-    df = get_historical_training_data(db_engine)
+    with open('/app/system_config.json', 'w') as f:
+        json.dump(config_summary, f, indent=2)
     
-    if df.empty:
-        print("No training data. Exiting.")
-        return
-
-    # 2. Define Features (X) and Target (y)
-    features = [col for col in df.columns if col!= 'market_resolution']
-    X = df[features]
-    y = df['market_resolution']
+    print("\n✓ Configuration saved to /app/system_config.json")
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("\n" + "=" * 60)
+    print("✅ SYSTEM READY TO TRADE")
+    print("=" * 60)
+    print("\nNext steps:")
+    print("1. Ensure your .env file has all required API keys")
+    print("2. Run: docker-compose up trader_app")
+    print("3. Monitor the logs for trade signals")
+    print("4. Create STOP.txt file to safely shut down\n")
     
-    # 3. Scale features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    
-    # 4. Train the "Quantamental" Model [80, 81, 82]
-    # We use XGBoost as it's powerful for this kind of mixed, tabular data.
-    model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', n_estimators=100)
-    model.fit(X_train_scaled, y_train)
-    
-    print(f"Model trained. Accuracy: {model.score(X_test_scaled, y_test):.2f}")
-    
-    # 5. Save the model and scaler
-    joblib.dump(model, config.META_MODEL_PATH)
-    joblib.dump(scaler, '/app/scaler.pkl')
-    print(f"Meta-model saved to {config.META_MODEL_PATH}")
+    return True
 
 if __name__ == "__main__":
-    train_meta_model()
+    success = initialize_system()
+    if not success:
+        print("\n⚠️  System initialization failed. Please fix the issues above.")
+        exit(1)

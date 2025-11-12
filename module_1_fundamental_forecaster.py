@@ -1,6 +1,6 @@
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
-from langchain_community.tools import GoogleSerperAPIWrapper
+from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.tools import tool
 from langchain.agents import create_react_agent, AgentExecutor

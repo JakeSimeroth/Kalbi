@@ -79,7 +79,7 @@ class KalshiTraderAPI:
             )
             
             # Convert list of candlestick objects to a DataFrame
-            data =
+            data = []  # <-- Fix: Initialize as an empty list
             for candle in response.candlesticks:
                 data.append({
                     'timestamp': pd.to_datetime(candle.end_period_ts, unit='s'),

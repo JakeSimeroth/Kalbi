@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      -./timescaledb_data:/var/lib/postgresql/data
+      - ./timescaledb_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -21,11 +21,11 @@ services:
   # The Main "All-in-One" Trading Bot Application
   trader_app:
     container_name: trader_app
-    build:.
+    build: .
     command: python main.py
     restart: on-failure
     volumes:
-      -.:/app
+      - .:/app
     environment:
       # Pass API keys from a.env file
       - KALSHI_API_KEY_ID=${KALSHI_API_KEY_ID}

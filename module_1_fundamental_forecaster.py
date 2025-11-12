@@ -2,9 +2,9 @@ import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_community.document_loaders import WebBaseLoader
-from langchain.tools import tool
-from langchain.agents import create_react_agent
-from langchain.agents.agent_executor import AgentExecutor
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.tools import Tool
+from langchain.agents import AgentExecutor, create_react_agent
 from langchain import hub
 
 import config
@@ -12,18 +12,16 @@ import json
 
 # --- Define Agent Tools ---
 
-@tool
 def scrape_webpage(url: str) -> str:
     """
     Scrapes the text content of a single webpage given its URL.
     Input must be a valid URL. Used to get deep context from a search result.
     """
-    #
     print(f"--- Scraping URL: {url} ---")
     try:
         loader = WebBaseLoader(url)
         docs = loader.load()
-        content = docs.page_content
+        content = docs[0].page_content if docs else ""
         # Truncate to first 4000 chars to avoid overwhelming the context window
         return content[:4000]
     except Exception as e:
@@ -41,7 +39,7 @@ class FundamentalForecaster:
         genai.configure(api_key=config.GEMINI_API_KEY)
         self.forecaster_llm = genai.GenerativeModel('gemini-1.5-flash')
         
-        # 2. Init a separate LangChain-compatible LLM for the "Research Agent" [22, 25]
+        # 2. Init a separate LangChain-compatible LLM for the "Research Agent"
         self.agent_llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash", 
             temperature=0, 
@@ -50,15 +48,51 @@ class FundamentalForecaster:
         )
         
         # 3. Define the tools for the Research Agent
-        search_tool = GoogleSerperAPIWrapper(serper_api_key=config.SERPER_API_KEY, k=5) #
-        search_tool.name = "web_search"
-        search_tool.description = "Searches the web for recent news and information. Input is a search query."
+        search_wrapper = GoogleSerperAPIWrapper(serper_api_key=config.SERPER_API_KEY, k=5)
         
-        self.tools = [search_tool, scrape_webpage]
+        # Create Tool objects instead of using @tool decorator
+        search_tool = Tool(
+            name="web_search",
+            description="Searches the web for recent news and information. Input is a search query.",
+            func=search_wrapper.run
+        )
+        
+        scrape_tool = Tool(
+            name="scrape_webpage",
+            description="Scrapes the text content of a single webpage given its URL. Input must be a valid URL.",
+            func=scrape_webpage
+        )
+        
+        self.tools = [search_tool, scrape_tool]
         
         # 4. Create the ReAct Agent
         # Pull the standard ReAct prompt template
-        react_prompt = hub.pull("hwchase17/react")
+        try:
+            react_prompt = hub.pull("hwchase17/react")
+        except Exception as e:
+            print(f"Warning: Could not pull react prompt from hub: {e}")
+            # Use a basic ReAct prompt as fallback
+            from langchain.prompts import PromptTemplate
+            react_prompt = PromptTemplate(
+                input_variables=["input", "agent_scratchpad"],
+                template="""Answer the following questions as best you can. You have access to the following tools:
+
+{tools}
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Question: {input}
+{agent_scratchpad}"""
+            )
         
         # Create the agent
         agent = create_react_agent(self.agent_llm, self.tools, react_prompt)
@@ -68,7 +102,8 @@ class FundamentalForecaster:
             agent=agent, 
             tools=self.tools, 
             verbose=True,
-            handle_parsing_errors=True # Crucial for reliability
+            handle_parsing_errors=True,  # Crucial for reliability
+            max_iterations=5  # Add a limit to prevent infinite loops
         )
         print("Module 1: 'Deep Research' agent initialized.")
 
@@ -136,10 +171,11 @@ class FundamentalForecaster:
         }}
         """
 
-    def get_fundamental_probability(self, market: Market) -> float:
+    def get_fundamental_probability(self, market) -> float:
         """
         The main public method for Module 1.
         Returns a single, fundamentally-derived probability.
+        Note: market is expected to be a Market object from Kalshi API
         """
         print(f"Module 1: Running Agentic RAG analysis for {market.ticker}...")
         try:

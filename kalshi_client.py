@@ -52,7 +52,7 @@ class KalshiTraderAPI:
                 return
 
             # Now, get all 'open' markets for those series tickers [59, 61]
-            markets =
+            markets = []
             for ticker in politics_series_tickers:
                 market_response = self.client.get_markets(
                     series_ticker=ticker,

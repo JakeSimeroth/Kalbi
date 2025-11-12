@@ -1,8 +1,4 @@
-version: '3.8'
-
 services:
-  # Module 2: Time-Series DB for "Graph Trends"
-  # We use TimescaleDB (a PostgreSQL extension) for full SQL support [1, 2, 3]
   timescaledb:
     image: timescale/timescaledb-ha:pg14-latest
     container_name: trader_timescaledb
@@ -11,27 +7,25 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./timescaledb_data:/var/lib/postgresql/data
+      -./timescaledb_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test:
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # The Main "All-in-One" Trading Bot Application
   trader_app:
     container_name: trader_app
-    build: .
+    build:.
     command: python main.py
     restart: on-failure
     volumes:
-      - .:/app
+      -.:/app
     environment:
-      # Pass API keys from a.env file
       - KALSHI_API_KEY_ID=${KALSHI_API_KEY_ID}
       - KALSHI_PRIVATE_KEY_PATH=${KALSHI_PRIVATE_KEY_PATH}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SERPER_API_KEY=${SERPER_API_KEY} # <-- CHANGED
+      - SERPER_API_KEY=${SERPER_API_KEY}
     depends_on:
       timescaledb:
         condition: service_healthy

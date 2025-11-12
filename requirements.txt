@@ -29,3 +29,9 @@ spacy
 scikit-learn
 joblib
 xgboost
+
+# LangChain for Agentic RAG Pipeline
+langchain
+langchain-agents  # <-- ADD THIS LINE
+langchain-google-genai
+langchain_community

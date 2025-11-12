@@ -7,7 +7,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./timescaledb_data:/var/lib/postgresql/data
+      -./timescaledb_data:/var/lib/postgresql/data
     healthcheck:
       test:
       interval: 5s
@@ -20,7 +20,7 @@ services:
     command: python main.py
     restart: on-failure
     volumes:
-      - .:/app
+      -.:/app
     environment:
       - KALSHI_API_KEY_ID=${KALSHI_API_KEY_ID}
       - KALSHI_PRIVATE_KEY_PATH=${KALSHI_PRIVATE_KEY_PATH}

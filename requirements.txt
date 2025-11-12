@@ -1,24 +1,31 @@
-Kalshi API Client
+# Kalshi API Client
 kalshi-python
 
-Google Gemini API Client
+# Google Gemini API Client
 google-generativeai
 
-LangChain for Agentic RAG Pipeline
-langchain langchain-google-genai langchain_community
+# LangChain for Agentic RAG Pipeline
+langchain
+langchain-google-genai
+langchain_community
 
-'langchain-agents' was removed as it's not a real package
-New Dependencies for Web Research Agent
-google-search-results beautifulsoup4 unstructured
+# New Dependencies for Web Research Agent
+google-search-results
+beautifulsoup4
+unstructured
 
-Data & Database
-pandas psycopg2-binary sqlalchemy
+# Data & Database
+pandas
+psycopg2-binary
+sqlalchemy
 
-Quantitative "Graph Trends" Analysis
+# Quantitative "Graph Trends" Analysis
 TA-Lib
 
-Text processing
+# Text processing
 spacy
 
-Meta-Model (Module 3)
-scikit-learn joblib xgboost
+# Meta-Model (Module 3)
+scikit-learn
+joblib
+xgboost

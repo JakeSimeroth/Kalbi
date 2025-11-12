@@ -2,36 +2,35 @@
 kalshi-python
 
 # Google Gemini API Client
-google-generativeai
+google-generativeai==0.3.2
 
-# LangChain for Agentic RAG Pipeline
-langchain
-langchain-google-genai
-langchain_community
+# LangChain for Agentic RAG Pipeline - Pin to specific versions
+langchain==0.1.0
+langchain-google-genai==0.0.5
+langchain-community==0.0.10
 
-# New Dependencies for Web Research Agent
-google-search-results
-beautifulsoup4
-unstructured
+# Web Research Dependencies
+google-search-results==2.4.2
+beautifulsoup4==4.12.2
+unstructured==0.11.0
 
 # Data & Database
-pandas
-psycopg2-binary
-sqlalchemy
+pandas==2.1.4
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
 
 # Quantitative "Graph Trends" Analysis
-TA-Lib
+TA-Lib==0.4.28
 
 # Text processing
-spacy
+spacy==3.7.2
 
 # Meta-Model (Module 3)
-scikit-learn
-joblib
-xgboost
+scikit-learn==1.3.2
+joblib==1.3.2
+xgboost==2.0.3
 
-# LangChain for Agentic RAG Pipeline
-langchain
-
-langchain-google-genai
-langchain_community
+# Additional dependencies that might be needed
+numpy==1.24.3
+requests==2.31.0
+urllib3==2.1.0

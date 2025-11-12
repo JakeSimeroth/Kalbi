@@ -32,6 +32,6 @@ xgboost
 
 # LangChain for Agentic RAG Pipeline
 langchain
-langchain_agents
+
 langchain-google-genai
 langchain_community

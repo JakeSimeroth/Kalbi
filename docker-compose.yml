@@ -9,7 +9,10 @@ services:
     volumes:
       -./timescaledb_data:/var/lib/postgresql/data
     healthcheck:
-      test:
+      # --- THIS IS THE CORRECTED LINE ---
+      # We are changing the 'test' value from a list to a single string
+      # to match what your Docker version is expecting.
+      test: "pg_isready -U postgres -h localhost"
       interval: 5s
       timeout: 5s
       retries: 5

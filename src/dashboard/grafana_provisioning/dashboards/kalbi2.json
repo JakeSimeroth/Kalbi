@@ -1,0 +1,317 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Portfolio Equity Curve",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 0 },
+      "id": 1,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "Value ($)",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, total_value FROM portfolio_snapshots WHERE $__timeFilter(created_at) ORDER BY created_at",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Risk Gauges",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 10,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "title": "Daily P&L",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 0 },
+      "id": 2,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "unit": "currencyUSD",
+          "custom": {
+            "axisLabel": "P&L ($)",
+            "fillOpacity": 80,
+            "gradientMode": "scheme"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, AVG(daily_pnl) AS daily_pnl FROM portfolio_snapshots WHERE $__timeFilter(created_at) GROUP BY date_trunc('day', created_at) ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Trades by Agent",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 11 },
+      "id": 3,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "tooltip": { "mode": "single" },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT agent_name, COUNT(*) AS trade_count FROM trades WHERE agent_name IS NOT NULL AND $__timeFilter(created_at) GROUP BY agent_name ORDER BY trade_count DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Daily Loss Utilisation",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 11 },
+      "id": 4,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "orange", "value": 75 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, ABS(daily_pnl_pct) / 5.0 * 100 AS loss_utilisation FROM portfolio_snapshots ORDER BY created_at DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Deployment Utilisation",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 4, "x": 12, "y": 11 },
+      "id": 5,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "orange", "value": 75 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, deployed_pct / 50.0 * 100 AS deploy_utilisation FROM portfolio_snapshots ORDER BY created_at DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Max Drawdown",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 4, "x": 16, "y": 11 },
+      "id": 6,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "orange", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "min": 0,
+          "max": 30,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, max_drawdown_pct FROM portfolio_snapshots ORDER BY created_at DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Correlation",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 4, "x": 20, "y": 11 },
+      "id": 7,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.4 },
+              { "color": "orange", "value": 0.6 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "min": 0,
+          "max": 1,
+          "decimals": 3
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT created_at AS time, COALESCE(portfolio_correlation, 0) AS correlation FROM portfolio_snapshots ORDER BY created_at DESC LIMIT 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Open Positions",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "id": 8,
+      "datasource": "TimescaleDB",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "price" },
+            "properties": [{ "id": "unit", "value": "currencyUSD" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "fill_price" },
+            "properties": [{ "id": "unit", "value": "currencyUSD" }]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "created_at", "desc": true }]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT id, trade_type, ticker_or_market_id, side, quantity, price, fill_price, status, agent_name, created_at FROM trades WHERE status IN ('pending', 'partial') ORDER BY created_at DESC LIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["kalbi2", "trading"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "KALBI-2 Trading System",
+  "uid": "kalbi2-main",
+  "version": 1
+}

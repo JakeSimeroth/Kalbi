@@ -1,0 +1,49 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: kalbi2_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TIMESCALEDB_URL: postgresql://postgres:test@localhost:5432/kalbi2_test
+      REDIS_URL: redis://localhost:6379/0
+      PAPER_TRADING_MODE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[dev]"
+      - name: Lint with ruff
+        run: ruff check src/ tests/
+      - name: Type check with mypy
+        run: mypy src/ --ignore-missing-imports
+      - name: Run tests
+        run: pytest tests/ -v --cov=src --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+        if: always()

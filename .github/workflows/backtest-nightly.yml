@@ -1,0 +1,26 @@
+name: Nightly Backtest
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6 AM UTC = 10 PM PST
+  workflow_dispatch:  # Allow manual trigger
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .
+      - name: Run backtests
+        run: python -m src.backtesting.engine --all-strategies --output results/
+      - name: Post results to GitHub Issue
+        if: always()
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Backtest Results - ${{ github.run_id }}"
+          content-filepath: results/summary.md
+          labels: backtest,automated

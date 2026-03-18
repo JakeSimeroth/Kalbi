@@ -1,31 +1,84 @@
+# ---------------------------------------------------------------------------
+# KALBI-2 Docker Compose -- Full Stack
+# ---------------------------------------------------------------------------
+version: "3.9"
+
 services:
+  # ── TimescaleDB (PostgreSQL with time-series extensions) ────────────────
   timescaledb:
-    image: timescale/timescaledb-ha:pg14-latest
-    container_name: trader_timescaledb
-    environment:
-      - POSTGRES_PASSWORD=your_secure_password
+    image: timescale/timescaledb:latest-pg16
+    container_name: kalbi2-timescaledb
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_USER: kalbi
+      POSTGRES_PASSWORD: kalbi
+      POSTGRES_DB: kalbi
     volumes:
-      - ./timescaledb_data:/var/lib/postgresql/data  # Added space after dash
+      - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
-      test: "pg_isready -U postgres -h localhost"
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U kalbi -d kalbi"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
-  trader_app:
-    container_name: trader_app
-    build: .
-    command: python main.py
-    restart: on-failure
+  # ── Redis (in-memory cache) ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: kalbi2-redis
+    ports:
+      - "6379:6379"
     volumes:
-      - .:/app  # Added space after dash
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Grafana (monitoring dashboards) ─────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kalbi2-grafana
+    ports:
+      - "3000:3000"
     environment:
-      - KALSHI_API_KEY_ID=${KALSHI_API_KEY_ID}
-      - KALSHI_PRIVATE_KEY_PATH=${KALSHI_PRIVATE_KEY_PATH}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SERPER_API_KEY=${SERPER_API_KEY}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: kalbi2
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./src/dashboard/grafana_provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./src/dashboard/grafana_provisioning/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       timescaledb:
         condition: service_healthy
+    restart: unless-stopped
+
+  # ── KALBI-2 Application ─────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kalbi2-app
+    env_file:
+      - .env
+    environment:
+      TIMESCALEDB_URL: postgresql://kalbi:kalbi@timescaledb:5432/kalbi
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+    # Allow the scheduler to receive SIGTERM for graceful shutdown
+    stop_grace_period: 30s
+
+volumes:
+  timescaledb_data:
+  redis_data:
+  grafana_data:
